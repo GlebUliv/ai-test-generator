@@ -78,7 +78,8 @@ body {
     #results-container {
         width: 100%; /* На мобильных - 100% ширины */
         padding: 1.5rem;
-        margin-top: 1rem; /* Небольшой отступ сверху */
+        margin: 1rem auto 0 auto; /* Центрирование: верхний отступ и auto для боков */
+        max-width: 100%; /* Убеждаемся, что не превышает ширину */
     }
 }
 
