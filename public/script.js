@@ -76,8 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
     generateBtn.addEventListener('click', async () => {
         // Проверяем, что количество вопросов валидно
         const questionCount = parseInt(questionCountInput.value, 10);
-        if (isNaN(questionCount) || questionCount < 1 || questionCount > 20) {
-            alert('Пожалуйста, введите корректное количество вопросов (от 1 до 20)');
+        if (isNaN(questionCount) || questionCount < 1 || questionCount > 50) {
+            alert('Пожалуйста, введите корректное количество вопросов (от 1 до 50)');
             return;
         }
 
