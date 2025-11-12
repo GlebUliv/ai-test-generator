@@ -42,7 +42,13 @@ if (!fs.existsSync('uploads')) {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+
+// Увеличиваем лимит для JSON-запросов (наша "Вставить текст")
+app.use(express.json({ limit: '10mb' })); 
+
+// Также увеличим лимит для URL-encoded (на всякий случай)
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 app.use(express.static('public')); // Раздача статических файлов из папки public
 
 // ===== ФУНКЦИЯ ДЛЯ ЛОГИКИ OPENAI =====
