@@ -6,27 +6,6 @@ const multer = require('multer');
 const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
 const fs = require('fs'); // Встроенный модуль
-const path = require('path'); // Встроенный модуль
-const { promisify } = require('util'); // Для "промисификации" коллбэков
-
-// Импортируем textract (старая библиотека с коллбэками)
-const textract = require('textract');
-
-// ===== НОВАЯ ОБЕРТКА ДЛЯ TEXTRACT (для буфера) =====
-function extractTextFromBuffer(buffer, mimeType) {
-    return new Promise((resolve, reject) => {
-        // Вызываем textract.fromBufferWithMime
-        // Ему нужен mime-тип, чтобы понять, какой парсер использовать
-        textract.fromBufferWithMime(mimeType, buffer, (error, text) => {
-            if (error) {
-                // Если ошибка, отклоняем Promise
-                return reject(error);
-            }
-            // Если успех, возвращаем текст
-            resolve(text);
-        });
-    });
-}
 
 // ===== НОВАЯ HELPER-ФУНКЦИЯ ДЛЯ ТАСОВАНИЯ =====
 function shuffleArray(array) {
