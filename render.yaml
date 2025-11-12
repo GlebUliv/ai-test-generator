@@ -3,7 +3,7 @@ services:
     name: ai-test-generator
     env: node
     plan: free
-    buildCommand: apt-get update && apt-get install -y antiword catdoc wv poppler-utils && npm install && mkdir -p uploads
+    buildCommand: npm install && mkdir -p uploads
     startCommand: "npm start"
     envVars:
       - key: NODE_VERSION

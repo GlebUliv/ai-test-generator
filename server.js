@@ -168,17 +168,6 @@ app.post('/api/upload-and-generate', upload.single('file'), async (req, res) => 
             // mammoth тоже умеет работать с буфером
             const result = await mammoth.extractRawText({ buffer: dataBuffer }); // <--- Используем буфер
             text = result.value;
-        } else if (req.file.mimetype === 'application/msword') { // .doc
-            // --- НАШ НОВЫЙ ФИКС ---
-            try {
-                text = await extractTextFromBuffer(dataBuffer, req.file.mimetype); // <--- Используем буфер
-            } catch (docError) {
-                // Если antiword не установлен, показываем понятную ошибку
-                if (docError.message && docError.message.includes('antiword')) {
-                    throw new Error('Обработка .doc файлов временно недоступна. Пожалуйста, используйте .docx, .pdf или .txt формат.');
-                }
-                throw docError; // Пробрасываем другие ошибки
-            }
         } else if (req.file.mimetype === 'text/plain') { // .txt
             text = dataBuffer.toString('utf8'); // Конвертируем буфер в строку
         } else {

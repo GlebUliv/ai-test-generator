@@ -20,7 +20,6 @@
     "mammoth": "^1.11.0",
     "multer": "^2.0.2",
     "openai": "^6.8.1",
-    "pdf-parse": "^2.4.5",
-    "textract": "^2.5.0"
+    "pdf-parse": "^2.4.5"
   }
 }
