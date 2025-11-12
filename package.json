@@ -1,0 +1,26 @@
+{
+  "name": "learning-tests",
+  "version": "1.0.0",
+  "description": "Learning Tests Project - Phase 1: Core Pipeline MVP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "mammoth": "^1.11.0",
+    "multer": "^2.0.2",
+    "openai": "^6.8.1",
+    "pdf-parse": "^2.4.5",
+    "textract": "^2.5.0"
+  }
+}

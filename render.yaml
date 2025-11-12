@@ -1,0 +1,26 @@
+services:
+  - type: web # Тип сервиса: веб-сервер
+    name: ai-test-generator # Имя твоего проекта
+    env: node # Среда: Node.js
+    plan: free # Используем бесплатный тариф
+    
+    # Команды, которые Render выполнит при сборке
+    buildCommand: |
+      npm install
+      # Устанавливаем системные утилиты для textract (.doc)
+      apt-get update && apt-get install -y antiword catdoc wv
+      # Создаем папку uploads (которой нет в .gitignore)
+      mkdir -p uploads
+      
+    # Команда для запуска (возьмет из package.json)
+    startCommand: "npm start"
+    
+    # Переменные окружения
+    envVars:
+      - key: NODE_VERSION # Говорим ему использовать Node 18
+        value: "18"
+      - key: OPENAI_API_KEY # КЛЮЧ
+        # 'fromEnv: true' значит, что мы добавим
+        # этот ключ вручную в UI Render
+        fromEnv: true
+

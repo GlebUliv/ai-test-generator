@@ -1,0 +1,42 @@
+# Environment variables and secrets
+.env
+.env.example
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Uploads directory
+uploads/
+

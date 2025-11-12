@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор образовательных тестов</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="setup-container">
+    <div class="tab-buttons">
+        <button id="tab-file-btn" class="tab-btn active">Загрузить файл</button>
+        <button id="tab-text-btn" class="tab-btn">Вставить текст</button>
+    </div>
+
+    <div class="tab-content">
+        
+        <div id="file-tab" class="tab-panel active">
+            <label for="file-input">Загрузите ваш конспект:</label>
+            <input type="file" id="file-input" accept=".pdf,.docx,.txt,.doc">
+        </div>
+        
+        <div id="text-tab" class="tab-panel">
+            <label for="text-input">Вставьте ваш конспект:</label>
+            <textarea id="text-input" placeholder="Вставьте ваш конспект сюда..." rows="10"></textarea>
+        </div>
+        
+    </div>
+
+    <div class="common-settings">
+        <label for="test-type">Тип теста:</label>
+        <select id="test-type">
+            <option value="mixed">Смешанный</option>
+            <option value="multiple_choice">Множественный выбор</option>
+            <option value="true_false">Верно/Неверно</option>
+            <option value="open_ended">Открытый вопрос</option>
+        </select>
+        
+        <label for="question-count">Количество вопросов:</label>
+        <input id="question-count" type="number" value="10" min="1" max="20">
+    </div>
+
+    <button id="generate-btn">Создать тест</button>
+</div>
+
+<div id="loading-container" class="hidden">
+    <h2>Идет генерация теста...</h2>
+    <p>Это может занять до 30 секунд.</p>
+</div>
+
+<div id="test-container" class="hidden">
+</div>
+
+<div id="results-container" class="hidden">
+</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
