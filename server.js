@@ -70,8 +70,23 @@ async function generateTestFromText(text, testType, questionCount) {
     {
     "questions": [
         {
-        "type": "multiple_choice" | "true_false" | "open_ended",
-        // ... (остальная структура)
+        "type": "multiple_choice",
+        "question": "Текст вопроса",
+        "options": ["Вариант 1", "Вариант 2", "Вариант 3"],
+        "correctAnswerIndex": 0,
+        "explanation": "Объяснение правильного ответа"
+        },
+        {
+        "type": "true_false",
+        "question": "Утверждение",
+        "correctAnswer": true,
+        "explanation": "Объяснение правильного ответа"
+        },
+        {
+        "type": "open_ended",
+        "question": "Открытый вопрос",
+        "idealAnswer": "Идеальный ответ на открытый вопрос",
+        "explanation": "Объяснение идеального ответа"
         }
     ]
     }
