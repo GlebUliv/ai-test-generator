@@ -7,6 +7,22 @@ const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
 const fs = require('fs'); // Встроенный модуль
 
+function safeParseJSON(raw) {
+    try {
+        return { ok: true, data: JSON.parse(raw) };
+    } catch (error) {
+        const match = raw.match(/(\{[\s\S]*\})/m);
+        if (match) {
+            try {
+                return { ok: true, data: JSON.parse(match[1]) };
+            } catch (nestedError) {
+                return { ok: false };
+            }
+        }
+        return { ok: false };
+    }
+}
+
 // ===== НОВАЯ HELPER-ФУНКЦИЯ ДЛЯ ТАСОВАНИЯ =====
 function shuffleArray(array) {
   let currentIndex = array.length,  randomIndex;
@@ -33,8 +49,23 @@ const PORT = process.env.PORT || 3001;
 // Он автоматически подхватит OPENAI_API_KEY из .env
 const openai = new OpenAI();
 
-// Настройка multer для временного хранения файла
-const upload = multer({ dest: 'uploads/' });
+const allowedMimeTypes = new Set([
+    'application/pdf',
+    'text/plain',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+]);
+
+const upload = multer({
+    dest: 'uploads/',
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (allowedMimeTypes.has(file.mimetype)) {
+            cb(null, true);
+            return;
+        }
+        cb(new Error('Unsupported file type'));
+    }
+});
 // Создаем папку, если ее нет
 if (!fs.existsSync('uploads')) {
     fs.mkdirSync('uploads');
@@ -104,7 +135,14 @@ async function generateTestFromText(text, testType, questionCount) {
         });
 
         const jsonString = response.choices[0].message.content;
-        const testData = JSON.parse(jsonString);
+        const parsed = safeParseJSON(jsonString);
+        if (!parsed.ok) {
+            console.error('LLM invalid JSON:', jsonString.slice(0, 300));
+            const parseError = new Error('LLM returned invalid JSON');
+            parseError.statusCode = 502;
+            throw parseError;
+        }
+        const testData = parsed.data;
 
         // Получаем массив вопросов
         let questions = testData.questions;
@@ -170,7 +208,7 @@ app.post('/api/generate-test', async (req, res) => {
         res.json(testData);
     } catch (error) {
         console.error('Ошибка генерации из текста:', error);
-        res.status(500).json({ message: error.message || 'Ошибка сервера' });
+        res.status(error.statusCode || 500).json({ message: error.message || 'Ошибка сервера' });
     }
 });
 
@@ -217,11 +255,26 @@ app.post('/api/upload-and-generate', upload.single('file'), async (req, res) => 
 
     } catch (error) {
         console.error('Ошибка парсинга файла или генерации:', error);
-        res.status(500).json({ message: error.message || 'Ошибка сервера' });
+        res.status(error.statusCode || 500).json({ message: error.message || 'Ошибка сервера' });
     } finally {
-        // 5. Обязательно удаляем временный файл
-        fs.unlinkSync(filePath);
+        if (fs.existsSync(filePath)) {
+            fs.unlink(filePath, (unlinkError) => {
+                if (unlinkError) {
+                    console.warn('Не удалось удалить временный файл:', unlinkError);
+                }
+            });
+        }
     }
+});
+
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ message: 'File too large' });
+    }
+    if (err && err.message === 'Unsupported file type') {
+        return res.status(400).json({ message: 'Unsupported file type' });
+    }
+    return next(err);
 });
 
 // Запуск сервера
