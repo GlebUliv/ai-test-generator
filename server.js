@@ -210,10 +210,23 @@ async function generateTestFromText(text, testType, questionCount) {
 
 // ===== ВОССТАНОВЛЕННЫЙ ЭНДПОИНТ ДЛЯ ТЕКСТА =====
 app.post('/api/generate-test', async (req, res) => {
-    const { text, testType, questionCount } = req.body;
+    const { text } = req.body;
+    const allowedTestTypes = new Set(['multiple_choice', 'true_false', 'open_ended', 'mixed']);
+    const rawQuestionCount = req.body.questionCount;
+    const parsedQuestionCount = rawQuestionCount === undefined || rawQuestionCount === null || rawQuestionCount === ''
+        ? 10
+        : Number.parseInt(rawQuestionCount, 10);
+    const questionCount = Number.isInteger(parsedQuestionCount)
+        ? Math.min(Math.max(parsedQuestionCount, 1), 30)
+        : 10;
+    const testType = typeof req.body.testType === 'string' ? req.body.testType : 'mixed';
 
-    if (!text || text.trim() === '') {
-        return res.status(400).json({ message: 'Текст не предоставлен.' });
+    if (!allowedTestTypes.has(testType)) {
+        return res.status(400).json({ message: 'Недопустимый тип теста.' });
+    }
+
+    if (!text || text.trim().length < 50) {
+        return res.status(400).json({ message: 'Текст должен быть не менее 50 символов.' });
     }
 
     try {
