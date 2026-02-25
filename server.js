@@ -7,19 +7,26 @@ const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
 const fs = require('fs'); // Встроенный модуль
 
+const ALLOWED_TEST_TYPES = new Set([
+    'multiple_choice',
+    'true_false',
+    'open_ended',
+    'mixed'
+]);
+
 function safeParseJSON(raw) {
     try {
-        return { ok: true, data: JSON.parse(raw) };
+        return { ok: true, data: JSON.parse(raw), mode: 'direct' };
     } catch (error) {
         const match = raw.match(/(\{[\s\S]*\})/m);
-        if (match) {
-            try {
-                return { ok: true, data: JSON.parse(match[1]) };
-            } catch (nestedError) {
-                return { ok: false };
-            }
+        if (!match) {
+            return { ok: false, reason: 'no_json_block' };
         }
-        return { ok: false };
+        try {
+            return { ok: true, data: JSON.parse(match[1]), mode: 'regex' };
+        } catch (nestedError) {
+            return { ok: false, reason: 'invalid_json_block' };
+        }
     }
 }
 
@@ -31,6 +38,18 @@ function truncateText(text, maxChars = 15000) {
         return text;
     }
     return text.slice(0, maxChars);
+}
+
+function normalizeParams(body) {
+    const rawQuestionCount = body.questionCount;
+    const parsedQuestionCount = rawQuestionCount === undefined || rawQuestionCount === null || rawQuestionCount === ''
+        ? 10
+        : Number.parseInt(rawQuestionCount, 10);
+    const questionCount = Number.isInteger(parsedQuestionCount)
+        ? Math.min(Math.max(parsedQuestionCount, 1), 30)
+        : 10;
+    const testType = typeof body.testType === 'string' ? body.testType : 'mixed';
+    return { testType, questionCount, isValid: ALLOWED_TEST_TYPES.has(testType) };
 }
 
 // ===== НОВАЯ HELPER-ФУНКЦИЯ ДЛЯ ТАСОВАНИЯ =====
@@ -150,17 +169,17 @@ async function generateTestFromText(text, testType, questionCount) {
         const jsonString = response.choices[0].message.content;
         const parsed = safeParseJSON(jsonString);
         if (!parsed.ok) {
-            console.error('LLM invalid JSON:', jsonString.slice(0, 300));
+            console.error('LLM invalid JSON:', parsed.reason, jsonString.slice(0, 300));
             const parseError = new Error('LLM returned invalid JSON');
             parseError.statusCode = 502;
             throw parseError;
         }
         const testData = parsed.data;
 
-        // Получаем массив вопросов
-        let questions = testData.questions;
-
-        // --- НАША НОВАЯ ЛОГИКА ВАЛИДАЦИИ ---
+        if (!Array.isArray(testData.questions)) {
+            console.warn('LLM response missing questions array');
+        }
+        let questions = Array.isArray(testData.questions) ? testData.questions : [];
         const validatedQuestions = questions.filter(q => {
             if (!q.type || !q.question || !q.explanation) {
                 console.warn('Вопрос пропущен из-за отсутствия базовых полей:', q);
@@ -202,26 +221,21 @@ async function generateTestFromText(text, testType, questionCount) {
         return questions; // Возвращаем (потенциально перемешанный и валидированный) массив
 
     } catch (error) {
-        console.error("Ошибка от OpenAI:", error);
-        // "Пробрасываем" ошибку выше, чтобы ее поймал эндпоинт
-        throw new Error('Ошибка при генерации теста в OpenAI.');
+        console.error(
+            "OpenAI error:",
+            error?.status || '',
+            error?.message || error
+        );
+        throw error;
     }
 }
 
 // ===== ВОССТАНОВЛЕННЫЙ ЭНДПОИНТ ДЛЯ ТЕКСТА =====
 app.post('/api/generate-test', async (req, res) => {
     const { text } = req.body;
-    const allowedTestTypes = new Set(['multiple_choice', 'true_false', 'open_ended', 'mixed']);
-    const rawQuestionCount = req.body.questionCount;
-    const parsedQuestionCount = rawQuestionCount === undefined || rawQuestionCount === null || rawQuestionCount === ''
-        ? 10
-        : Number.parseInt(rawQuestionCount, 10);
-    const questionCount = Number.isInteger(parsedQuestionCount)
-        ? Math.min(Math.max(parsedQuestionCount, 1), 30)
-        : 10;
-    const testType = typeof req.body.testType === 'string' ? req.body.testType : 'mixed';
+    const { testType, questionCount, isValid } = normalizeParams(req.body);
 
-    if (!allowedTestTypes.has(testType)) {
+    if (!isValid) {
         return res.status(400).json({ message: 'Недопустимый тип теста.' });
     }
 
@@ -246,7 +260,12 @@ app.post('/api/upload-and-generate', upload.single('file'), async (req, res) => 
         return res.status(400).json({ message: 'Файл не загружен.' });
     }
 
-    const { testType, questionCount } = req.body;
+    const { testType, questionCount, isValid } = normalizeParams(req.body);
+
+    if (!isValid) {
+        return res.status(400).json({ message: 'Недопустимый тип теста.' });
+    }
+
     const filePath = req.file.path;
     let text = '';
 
@@ -271,6 +290,9 @@ app.post('/api/upload-and-generate', upload.single('file'), async (req, res) => 
         // Проверка, что текст извлечен
         if (!text || text.trim() === '') {
             throw new Error('Не удалось извлечь текст из файла. Файл пустой или поврежден.');
+        }
+        if (text.trim().length < 50) {
+            return res.status(400).json({ message: 'Текст должен быть не менее 50 символов.' });
         }
 
         // 3. ВЫЗОВ НАШЕЙ ЛОГИКИ
@@ -300,7 +322,8 @@ app.use((err, req, res, next) => {
     if (err && err.message === 'Unsupported file type') {
         return res.status(400).json({ message: 'Unsupported file type' });
     }
-    return next(err);
+    console.error('Unhandled error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
 });
 
 // Запуск сервера
