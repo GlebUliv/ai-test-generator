@@ -109,15 +109,46 @@ async function generateTestFromText(text, testType, questionCount) {
         // Получаем массив вопросов
         let questions = testData.questions;
 
-        // --- НАША НОВАЯ ЛОГИКА ---
+        // --- НАША НОВАЯ ЛОГИКА ВАЛИДАЦИИ ---
+        const validatedQuestions = questions.filter(q => {
+            if (!q.type || !q.question || !q.explanation) {
+                console.warn('Вопрос пропущен из-за отсутствия базовых полей:', q);
+                return false;
+            }
+
+            if (q.type === 'multiple_choice') {
+                if (!Array.isArray(q.options) || q.options.length < 2 || typeof q.correctAnswerIndex !== 'number' || q.correctAnswerIndex < 0 || q.correctAnswerIndex >= q.options.length) {
+                    console.warn('Вопрос с множественным выбором пропущен из-за некорректных полей:', q);
+                    return false;
+                }
+            } else if (q.type === 'true_false') {
+                if (typeof q.correctAnswer !== 'boolean') {
+                    console.warn('Вопрос "Верно/Неверно" пропущен из-за некорректного поля correctAnswer:', q);
+                    return false;
+                }
+            } else if (q.type === 'open_ended') {
+                if (!q.idealAnswer || typeof q.idealAnswer !== 'string' || q.idealAnswer.trim() === '') {
+                    console.warn('Открытый вопрос пропущен из-за некорректного поля idealAnswer:', q);
+                    return false;
+                }
+            } else {
+                console.warn('Вопрос пропущен из-за неизвестного типа:', q.type, q);
+                return false;
+            }
+            return true;
+        });
+        // --- КОНЕЦ НОВОЙ ЛОГИКИ ВАЛИДАЦИИ ---
+
         // Если тип "mixed", тасуем массив
         if (testType === 'mixed') {
             console.log("Тасуем вопросы для 'mixed' теста...");
-            questions = shuffleArray(questions);
+            // Тасуем только валидированные вопросы
+            questions = shuffleArray(validatedQuestions);
+        } else {
+            questions = validatedQuestions;
         }
-        // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
 
-        return questions; // Возвращаем (потенциально перемешанный) массив
+        return questions; // Возвращаем (потенциально перемешанный и валидированный) массив
 
     } catch (error) {
         console.error("Ошибка от OpenAI:", error);
